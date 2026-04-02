@@ -1,11 +1,6 @@
 from flask import jsonify, request
-from services.product_service import (
-    get_all_products,
-    create_product,
-    update_product_full,
-    update_product_partial,
-    delete_product_by_id
-)
+from models.product import Product
+from db.database import db
 
 
 def home():
@@ -13,7 +8,8 @@ def home():
 
 
 def get_products():
-    return jsonify(get_all_products())
+    products = Product.query.all()
+    return jsonify([product.to_dict() for product in products])
 
 
 def add_products():
@@ -25,55 +21,24 @@ def add_products():
     if name is None or price is None:
         return jsonify({"message": "Missing fields"}), 400
 
-    product = create_product(name, price)
+    product = Product(name=name, price=price)
+
+    db.session.add(product)
+    db.session.commit()
 
     return jsonify({
         "message": "product added safely",
-        "product": product
+        "product": product.to_dict()
     }), 201
 
 
 def update_product(id):
-    data = request.get_json()
-
-    name = data.get("name")
-    price = data.get("price")
-
-    if name is None or price is None:
-        return jsonify({"message": "Missing fields"}), 400
-
-    updated = update_product_full(id, name, price)
-
-    if updated is None:
-        return jsonify({"message": "product not in database"}), 404
-
-    return jsonify({
-        "message": "Product updated successfully",
-        "product": updated
-    })
+    return jsonify({"message": "PUT not converted to ORM yet"}), 501
 
 
 def partial_update_product(id):
-    data = request.get_json()
-
-    name = data.get("name")
-    price = data.get("price")
-
-    result = update_product_partial(id, name, price)
-
-    if result is None:
-        return jsonify({"message": "product not in database"}), 404
-
-    if result == "no_fields":
-        return jsonify({"message": "No fields provided"}), 400
-
-    return jsonify({"message": "Product updated successfully"})
+    return jsonify({"message": "PATCH not converted to ORM yet"}), 501
 
 
 def delete_product(id):
-    deleted = delete_product_by_id(id)
-
-    if not deleted:
-        return jsonify({"message": "product not in database"}), 404
-
-    return jsonify({"message": "product deleted successfully"})
+    return jsonify({"message": "DELETE not converted to ORM yet"}), 501

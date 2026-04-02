@@ -1,5 +1,5 @@
 from db.database import get_db_connection
-
+#this file contains all services this include sql 
 
 def get_all_products():
     conn = get_db_connection()
