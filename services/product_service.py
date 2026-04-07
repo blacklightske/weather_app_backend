@@ -1,105 +1,107 @@
-from db.database import get_db_connection
-#this file contains all services this include sql 
-
-def get_all_products():
-    conn = get_db_connection()
-    rows = conn.execute("SELECT * FROM products").fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
+from flask import jsonify, request
+from models.product import Product
+from db.database import db
 
 
-def create_product(name, price):
-    conn = get_db_connection()
-    cursor = conn.execute(
-        "INSERT INTO products (name, price) VALUES (?, ?)",
-        (name, price)
-    )
-    conn.commit()
-    new_id = cursor.lastrowid
-    conn.close()
-
-    return {
-        "id": new_id,
-        "name": name,
-        "price": price
-    }
+def home():
+    return jsonify({"message": "hello from our first flask server"})
 
 
-def update_product_full(id, name, price):
-    conn = get_db_connection()
-
-    product = conn.execute(
-        "SELECT * FROM products WHERE id = ?", (id,)
-    ).fetchone()
-
-    if product is None:
-        conn.close()
-        return None
-
-    conn.execute(
-        "UPDATE products SET name = ?, price = ? WHERE id = ?",
-        (name, price, id)
-    )
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "id": id,
-        "name": name,
-        "price": price
-    }
+def get_products():
+    products = Product.query.all()
+    return jsonify([product.to_dict() for product in products])
 
 
-def update_product_partial(id, name=None, price=None):
-    conn = get_db_connection()
+def add_products():
+    if not request.is_json:
+        return jsonify({"message": "Request must be JSON"}), 415
 
-    product = conn.execute(
-        "SELECT * FROM products WHERE id = ?", (id,)
-    ).fetchone()
+    data = request.get_json()
+
+    name = data.get("name")
+    price = data.get("price")
+
+    if name is None or price is None:
+        return jsonify({"message": "Missing fields"}), 400
+
+    product = Product()
+    product.name = name
+    product.price = price
+
+    db.session.add(product)
+    db.session.commit()
+
+    return jsonify({
+        "message": "product added safely",
+        "product": product.to_dict()
+    }), 201
+
+
+def update_product(id):
+    if not request.is_json:
+        return jsonify({"message": "Request must be JSON"}), 415
+
+    data = request.get_json()
+
+    name = data.get("name")
+    price = data.get("price")
+
+    if name is None or price is None:
+        return jsonify({"message": "Missing fields"}), 400
+
+    product = Product.query.get(id)
 
     if product is None:
-        conn.close()
-        return None
+        return jsonify({"message": "product not in database"}), 404
 
-    updates = []
-    values = []
+    product.name = name
+    product.price = price
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Product updated successfully",
+        "product": product.to_dict()
+    }), 200
+
+def get_product_by_id(id):
+    product = Product.query.get(id)
+
+    if product is None:
+        return jsonify({"message": "product not in database"}), 404
+
+    return jsonify(product.to_dict()), 200
+
+def partial_update_product(id):
+    if not request.is_json:
+        return jsonify({"message": "Request must be JSON"}), 415
+
+    data = request.get_json()
+
+    name = data.get("name")
+    price = data.get("price")
+
+    product = Product.query.get(id)
+
+    if product is None:
+        return jsonify({"message": "product not in database"}), 404
+
+    if name is None and price is None:
+        return jsonify({"message": "No fields provided"}), 400
 
     if name is not None:
-        updates.append("name = ?")
-        values.append(name)
+        product.name = name
 
     if price is not None:
-        updates.append("price = ?")
-        values.append(price)
+        product.price = price
 
-    if not updates:
-        conn.close()
-        return "no_fields"
+    db.session.commit()
 
-    query = f"UPDATE products SET {', '.join(updates)} WHERE id = ?"
-    values.append(id)
-
-    conn.execute(query, tuple(values))
-    conn.commit()
-    conn.close()
-
-    return True
+    return jsonify({
+        "message": "Product updated successfully",
+        "product": product.to_dict()
+    }), 200
 
 
-def delete_product_by_id(id):
-    conn = get_db_connection()
-
-    product = conn.execute(
-        "SELECT * FROM products WHERE id = ?", (id,)
-    ).fetchone()
-
-    if product is None:
-        conn.close()
-        return False
-
-    conn.execute("DELETE FROM products WHERE id = ?", (id,))
-    conn.commit()
-    conn.close()
-
-    return True
+def delete_product(id):
+    return jsonify({"message": "DELETE not converted to ORM yet"}), 501

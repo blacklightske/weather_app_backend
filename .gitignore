@@ -1,0 +1,30 @@
+# Secrets / env files
+.env
+.env.*
+!.env.example
+
+# Flask instance folder (contains sqlite DB and other local-only state)
+instance/
+!instance/.gitkeep
+
+# SQLite / local DB files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+logs/
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
