@@ -21,14 +21,26 @@ def add_products():
     name = data.get("name")
     price = data.get("price")
     description = data.get("description")
+    category_id = data.get("category_id")
 
     if name is None or price is None:
         return jsonify({"message": "Missing fields"}), 400
+    if not isinstance(name, str) or not name.strip():#isinstance checks,,, is this value of this type?
+        return jsonify({"message": "Name must be a non-empty string"}), 400
+
+    if not isinstance(price, (int, float)):
+        return jsonify({"message": "Price must be a number"}), 400
+
+    if price < 0:
+        return jsonify({"message": "Price cannot be negative"}), 400
+    if category_id < 0:
+        return jsonify({"message": "category_id cannot be negative"}), 400
 
     product = Product()
     product.name = name
     product.price = price
     product.description = description
+    product.category_id = category_id
 
     db.session.add(product)
     db.session.commit()
@@ -55,9 +67,17 @@ def update_product(id):
 
     name = data.get("name")
     price = data.get("price")
-
+   
     if name is None or price is None:
         return jsonify({"message": "Missing fields"}), 400
+    if not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Name must be a non-empty string"}), 400
+
+    if not isinstance(price, (int, float)):
+        return jsonify({"message": "Price must be a number"}), 400
+
+    if price < 0:
+        return jsonify({"message": "Price cannot be negative"}), 400
 
     product = Product.query.get(id)
 
@@ -73,6 +93,30 @@ def update_product(id):
         "message": "Product updated successfully",
         "product": product.to_dict()
     }), 200
+
+def add_category():
+    if not request.is_json:
+        return jsonify({"message": "Request must be JSON"}), 415
+
+    data = request.get_json()
+
+    name = data.get("name")
+
+    if name is None or not isinstance(name, str) or not name.strip():
+        return jsonify({"message": "Name must be a non-empty string"}), 400
+
+    from models.category import Category
+
+    category = Category()
+    category.name = name.strip()
+
+    db.session.add(category)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Category created successfully",
+        "category": category.to_dict()
+    }), 201
 
 
 def partial_update_product(id):
@@ -93,9 +137,15 @@ def partial_update_product(id):
         return jsonify({"message": "No fields provided"}), 400
 
     if name is not None:
-        product.name = name
+        if not isinstance(name, str) or not name.strip():
+            return jsonify({"message": "Name must be a non-empty string"}), 400
+        product.name = name.strip()
 
     if price is not None:
+        if not isinstance(price, (int, float)):
+            return jsonify({"message": "Price must be a number"}), 400
+        if price < 0:
+            return jsonify({"message": "Price cannot be negative"}), 400
         product.price = price
 
     db.session.commit()
