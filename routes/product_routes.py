@@ -7,7 +7,8 @@ from views.product_views import (
     partial_update_product,
     delete_product,
     get_product_by_id,
-    add_category
+    add_category,
+    get_categories
 )
 
 product_bp = Blueprint("product_bp", __name__)
@@ -19,5 +20,6 @@ product_bp.route("/products/<int:id>", methods=["PUT"])(update_product)
 product_bp.route("/products/<int:id>", methods=["PATCH"])(partial_update_product)
 product_bp.route("/products/<int:id>", methods=["DELETE"])(delete_product)
 product_bp.route("/products/<int:id>", methods=["GET"])(get_product_by_id)
-product_bp.route("/products/<int:id>", methods=["POST"])(add_category)
+product_bp.route("/categories", methods=["POST"])(add_category)
+product_bp.route("/categories", methods=["GET"])(get_categories)
 

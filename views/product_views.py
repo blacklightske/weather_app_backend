@@ -1,6 +1,8 @@
 from flask import jsonify, request
 from models.product import Product
 from db.database import db
+from models.category import Category
+from sqlalchemy.exc import IntegrityError
 
 
 def home():
@@ -33,8 +35,8 @@ def add_products():
 
     if price < 0:
         return jsonify({"message": "Price cannot be negative"}), 400
-    if category_id < 0:
-        return jsonify({"message": "category_id cannot be negative"}), 400
+    if category_id is None:
+        return jsonify({"message": "category_id is required"}), 400
 
     product = Product()
     product.name = name
@@ -42,9 +44,15 @@ def add_products():
     product.description = description
     product.category_id = category_id
 
-    db.session.add(product)
-    db.session.commit()
-
+    try:
+        db.session.add(product)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({
+            "message": "Product with this name already exists in this category"
+        }), 400
+    
     return jsonify({
         "message": "product added safely",
         "product": product.to_dict()
@@ -94,6 +102,12 @@ def update_product(id):
         "product": product.to_dict()
     }), 200
 
+def get_categories():
+    from models.category import Category
+
+    categories = Category.query.all()
+    return jsonify([category.to_dict() for category in categories]), 200    
+
 def add_category():
     if not request.is_json:
         return jsonify({"message": "Request must be JSON"}), 415
@@ -105,13 +119,17 @@ def add_category():
     if name is None or not isinstance(name, str) or not name.strip():
         return jsonify({"message": "Name must be a non-empty string"}), 400
 
-    from models.category import Category
+    
 
     category = Category()
     category.name = name.strip()
-
-    db.session.add(category)
-    db.session.commit()
+    
+    try:
+        db.session.add(category)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"message": "Category already exists"}), 400
 
     return jsonify({
         "message": "Category created successfully",
